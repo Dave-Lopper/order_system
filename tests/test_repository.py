@@ -1,9 +1,10 @@
 from order_system import domain, repository
 
+from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
 
 
-def insert_order_line(session):
+def insert_order_line(session: Session):
     session.execute(
         text(
             "INSERT INTO order_lines (order_ref, sku, quantity)"
@@ -19,7 +20,7 @@ def insert_order_line(session):
     return orderline_id
 
 
-def insert_batch(session, batch_id: str):
+def insert_batch(session: Session, batch_id: str):
     session.execute(
         text(
             "INSERT INTO batches (reference, sku, _purchased_quantity, eta)"
@@ -37,7 +38,7 @@ def insert_batch(session, batch_id: str):
     return batch_id
 
 
-def insert_allocation(session, orderline_id: str, batch_id: str):
+def insert_allocation(session: Session, orderline_id: str, batch_id: str):
     session.execute(
         text(
             "INSERT INTO allocations (orderline_id, batch_id)"
@@ -47,7 +48,7 @@ def insert_allocation(session, orderline_id: str, batch_id: str):
     )
 
 
-def test_repository_can_save_a_batch(session):
+def test_repository_can_save_a_batch(session: Session):
     batch = domain.Batch("batch1", "RUSTY-SOAPDISH", 100, eta=None)
 
     repo = repository.SqlAlchemyRepository(session)
@@ -60,7 +61,7 @@ def test_repository_can_save_a_batch(session):
     assert list(rows) == [("batch1", "RUSTY-SOAPDISH", 100, None)]
 
 
-def test_repository_can_retrieve_a_batch_with_allocations(session):
+def test_repository_can_retrieve_a_batch_with_allocations(session: Session):
     orderline_id = insert_order_line(session)
     batch1_id = insert_batch(session, "batch1")
     insert_batch(session, "batch2")
