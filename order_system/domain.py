@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import date
 
 from typing import List, Optional, Set
@@ -5,13 +6,11 @@ from typing import List, Optional, Set
 from pydantic import BaseModel
 
 
-class OrderLine(BaseModel):
+@dataclass(unsafe_hash=True)
+class OrderLine:
     order_ref: str
     sku: str
     quantity: int
-
-    class Config:
-        frozen = True
 
 
 class Order(BaseModel):
