@@ -1,16 +1,20 @@
 from typing import Protocol
 
 from order_system import domain
+from sqlalchemy.orm import Session
 
 
 class AbstractRepository(Protocol):
     def add(self, batch: domain.Batch): ...
 
     def get(self, reference: str) -> domain.Batch: ...
+    
+    def list(self) -> list[domain.Batch]: ...
 
 
 class SqlAlchemyRepository(AbstractRepository):
-    def __init__(self, session):
+
+    def __init__(self, session: Session):
         self.session = session
 
     def add(self, batch: domain.Batch):
