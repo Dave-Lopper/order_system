@@ -22,8 +22,10 @@ def allocate_endpoint():
 
     try:
         batchref = services.allocate(line, repo, session)
-    except (domain.OutOfStock, services.InvalidSku) as e:
+    except services.InvalidSku as e:
         return {"message": str(e)}, 400
+    except domain.OutOfStock as e:
+        return {"message": str(e)}, 422
 
     return {"batchref": batchref}, 201
 
