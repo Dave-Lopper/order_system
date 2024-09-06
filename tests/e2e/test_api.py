@@ -3,7 +3,7 @@ from datetime import date
 from typing import Optional
 
 import pytest
-import requests
+import requests  # type: ignore
 
 from order_system import config
 
@@ -53,18 +53,14 @@ def test_happy_path_returns_201_and_allocated_batch():
 
 
 @pytest.mark.usefixtures("restart_api")
-def test_api_returns_allocation(add_stock):
+def test_api_returns_allocation():
     sku, othersku = random_sku(), random_sku("other")  # (1)
     earlybatch = random_batchref(1)
     laterbatch = random_batchref(2)
     otherbatch = random_batchref(3)
-    add_stock(  # (2)
-        [
-            (laterbatch, sku, 100, "2011-01-02"),
-            (earlybatch, sku, 100, "2011-01-01"),
-            (otherbatch, othersku, 100, None),
-        ]
-    )
+    post_to_add_batch(laterbatch, sku, 100, "2011-01-02")
+    post_to_add_batch(earlybatch, sku, 100, "2011-01-01")
+    post_to_add_batch(otherbatch, othersku, 100, None)
     data = {"orderid": random_orderid(), "sku": sku, "quantity": 3}
     url = config.get_api_url()  # (3)
 
@@ -86,18 +82,14 @@ def test_api_returns_400_when_invalid_sku():
 
 
 @pytest.mark.usefixtures("restart_api")
-def test_api_returns_422_when_oos(add_stock):
+def test_api_returns_422_when_oos():
     sku, othersku = random_sku(), random_sku("other")  # (1)
     earlybatch = random_batchref(1)
     laterbatch = random_batchref(2)
     otherbatch = random_batchref(3)
-    add_stock(  # (2)
-        [
-            (laterbatch, sku, 100, "2011-01-02"),
-            (earlybatch, sku, 100, "2011-01-01"),
-            (otherbatch, othersku, 100, None),
-        ]
-    )
+    post_to_add_batch(laterbatch, sku, 100, "2011-01-02")
+    post_to_add_batch(earlybatch, sku, 100, "2011-01-01")
+    post_to_add_batch(otherbatch, othersku, 100, None)
     data = {"orderid": random_orderid(), "sku": sku, "quantity": 300}
     url = config.get_api_url()
     r = requests.post(f"{url}/allocate", json=data)
