@@ -22,7 +22,7 @@ def add_batch():
     services.add_batch(
         ref=request.json["ref"],
         sku=request.json["sku"],
-        qty=request.json["quantity"],
+        quantity=request.json["quantity"],
         eta=eta,
         repo=repo,
         session=session,
@@ -39,7 +39,7 @@ def allocate_endpoint():
         batchref = services.allocate(
             order_id=request.json["orderid"],
             sku=request.json["sku"],
-            quantity=request.json["qty"],
+            quantity=request.json["quantity"],
             repo=repo,
             session=session,
         )

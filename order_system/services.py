@@ -17,12 +17,12 @@ def is_valid_sku(sku: str, batches: list[domain.Batch]):
 def add_batch(
     ref: str,
     sku: str,
-    qty: int,
+    quantity: int,
     eta: Optional[date],
     repo: repository.AbstractRepository,
     session: Session,
 ) -> None:
-    repo.add(domain.Batch(ref=ref, sku=sku, quantity=qty, eta=eta))
+    repo.add(domain.Batch(ref=ref, sku=sku, quantity=quantity, eta=eta))
     session.commit()
 
 

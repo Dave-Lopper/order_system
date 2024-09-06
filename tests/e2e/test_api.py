@@ -43,7 +43,7 @@ def test_happy_path_returns_201_and_allocated_batch():
     post_to_add_batch(laterbatch, sku, 100, "2011-01-02")
     post_to_add_batch(earlybatch, sku, 100, "2011-01-01")
     post_to_add_batch(otherbatch, othersku, 100, None)
-    data = {"orderid": random_orderid(), "sku": sku, "qty": 3}
+    data = {"orderid": random_orderid(), "sku": sku, "quantity": 3}
 
     url = config.get_api_url()
     r = requests.post(f"{url}/allocate", json=data)
@@ -65,7 +65,7 @@ def test_api_returns_allocation(add_stock):
             (otherbatch, othersku, 100, None),
         ]
     )
-    data = {"orderid": random_orderid(), "sku": sku, "qty": 3}
+    data = {"orderid": random_orderid(), "sku": sku, "quantity": 3}
     url = config.get_api_url()  # (3)
 
     r = requests.post(f"{url}/allocate", json=data)
@@ -77,7 +77,7 @@ def test_api_returns_allocation(add_stock):
 @pytest.mark.usefixtures("restart_api")
 def test_api_returns_400_when_invalid_sku():
     invalid_sku = "invalid_sku"
-    data = {"orderid": random_orderid(), "sku": invalid_sku, "qty": 3}
+    data = {"orderid": random_orderid(), "sku": invalid_sku, "quantity": 3}
     url = config.get_api_url()
     r = requests.post(f"{url}/allocate", json=data)
 
@@ -98,7 +98,7 @@ def test_api_returns_422_when_oos(add_stock):
             (otherbatch, othersku, 100, None),
         ]
     )
-    data = {"orderid": random_orderid(), "sku": sku, "qty": 300}
+    data = {"orderid": random_orderid(), "sku": sku, "quantity": 300}
     url = config.get_api_url()
     r = requests.post(f"{url}/allocate", json=data)
 

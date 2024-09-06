@@ -19,15 +19,15 @@ def test_allocating_to_a_batch_reduces_the_available_quantity():
     assert batch.available_quantity == 18
 
 
-def make_batch_and_line(sku: str, batch_qty: int, line_qty: int):
+def make_batch_and_line(sku: str, batch_quantity: int, line_quantity: int):
     return (
         Batch(
             ref="batch-001",
             sku=sku,
-            quantity=batch_qty,
+            quantity=batch_quantity,
             eta=date.today(),
         ),
-        OrderLine(order_ref="order-123", sku=sku, quantity=line_qty),
+        OrderLine(order_ref="order-123", sku=sku, quantity=line_quantity),
     )
 
 

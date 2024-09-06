@@ -8,12 +8,12 @@ def test_orderline_mapper_can_load_lines(session: Session):  # (1)
     session.execute(
         text(
             "INSERT INTO order_lines (order_ref, sku, quantity) "
-            "VALUES (:orderid, :sku, :qty)"
+            "VALUES (:orderid, :sku, :quantity)"
         ),
         [
-            {"orderid": "order1", "sku": "RED-CHAIR", "qty": 12},
-            {"orderid": "order1", "sku": "RED-TABLE", "qty": 13},
-            {"orderid": "order2", "sku": "BLUE-LIPSTICK", "qty": 14},
+            {"orderid": "order1", "sku": "RED-CHAIR", "quantity": 12},
+            {"orderid": "order1", "sku": "RED-TABLE", "quantity": 13},
+            {"orderid": "order2", "sku": "BLUE-LIPSTICK", "quantity": 14},
         ],
     )
     expected = [
