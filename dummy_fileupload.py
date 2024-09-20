@@ -97,8 +97,3 @@ if __name__ == "__main__":
         sys.exit(1)
 
     handler.handle_upload(file_name, content_type)
-
-    # if content_type.startswith("image/"):
-    #     handler: AbstractFileUploadHander = ImageUploadHandler()
-    # elif:
-    print(f"{args=}")

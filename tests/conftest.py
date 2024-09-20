@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any, Generator
 
 import pytest
-import requests
+import requests  # type: ignore
 from sqlalchemy import create_engine, Engine
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker, clear_mappers, Session
@@ -17,6 +17,13 @@ def in_memory_db() -> Engine:
     engine = create_engine("sqlite:///:memory:")
     metadata.create_all(engine)
     return engine
+
+
+@pytest.fixture
+def session_factory(in_memory_db):
+    start_mappers()
+    yield sessionmaker(bind=in_memory_db)
+    clear_mappers()
 
 
 @pytest.fixture
@@ -38,7 +45,7 @@ def wait_for_postgres_to_come_up(engine):
 
 @pytest.fixture(scope="session")
 def postgres_db():
-    engine = create_engine(config.get_postgres_uri())
+    engine = create_engine(config.get_db_uri())
     wait_for_postgres_to_come_up(engine)
     metadata.create_all(engine)
     return engine

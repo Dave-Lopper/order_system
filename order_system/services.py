@@ -1,9 +1,7 @@
 from datetime import date
 from typing import Optional
 
-from sqlalchemy.orm import Session
-
-from order_system import domain, repository
+from order_system import domain, unit_of_work
 
 
 class InvalidSku(Exception):
@@ -19,24 +17,40 @@ def add_batch(
     sku: str,
     quantity: int,
     eta: Optional[date],
-    repo: repository.AbstractRepository,
-    session: Session,
+    uow: unit_of_work.AbstractUnitOfWork,
 ) -> None:
-    repo.add(domain.Batch(ref=ref, sku=sku, quantity=quantity, eta=eta))
-    session.commit()
+    with uow:
+        uow.batches.add(
+            domain.Batch(ref=ref, sku=sku, quantity=quantity, eta=eta)
+        )
+        uow.commit()
 
 
 def allocate(
     order_id: str,
     sku: str,
     quantity: int,
-    repo: repository.AbstractRepository,
-    session: Session,
+    uow: unit_of_work.AbstractUnitOfWork,
 ) -> str:
-    batches = repo.list()
-    if not is_valid_sku(sku, batches):
-        raise InvalidSku(f"Invalid sku {sku}")
     line = domain.OrderLine(order_ref=order_id, sku=sku, quantity=quantity)
-    batchref = domain.allocate(line, batches)
-    session.commit()
+    with uow:
+        batches = uow.batches.list()
+        if not is_valid_sku(sku, batches):
+            raise InvalidSku(f"Invalid sku {sku}")
+        batchref = domain.allocate(line, batches)
+        uow.commit()
+    return batchref
+
+
+def reallocate(
+    line: domain.OrderLine,
+    uow: unit_of_work.AbstractUnitOfWork,
+) -> str:
+    with uow:
+        batch = uow.batches.get(reference=line.sku)
+        if batch is None:
+            raise InvalidSku(f"Invalid sku {line.sku}")
+        batch.deallocate(line)
+        batchref = allocate(line.order_ref, line.sku, line.quantity, uow)
+        uow.commit()
     return batchref
