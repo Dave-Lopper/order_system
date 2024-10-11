@@ -7,7 +7,6 @@ from sqlalchemy.orm import sessionmaker
 from order_system import (
     config,
     orm,
-    repository,
     domain,
     services,
     unit_of_work,

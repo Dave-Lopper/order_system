@@ -23,12 +23,19 @@ order_lines = Table(
     Column("order_ref", String(255)),
 )
 
+products = Table(
+    "products",
+    metadata,
+    Column("sku", String(255), primary_key=True),
+    Column("version_number", Integer, nullable=False, server_default="0"),
+)
+
 batches = Table(
     "batches",
     metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("reference", String(255)),
-    Column("sku", String(255)),
+    Column("sku", ForeignKey("products.sku")),
     Column("_purchased_quantity", Integer, nullable=False),
     Column("eta", Date, nullable=True),
 )
@@ -45,7 +52,7 @@ allocations = Table(
 def start_mappers():
     Registry = registry(metadata=MetaData)
     lines_mapper = Registry.map_imperatively(domain.OrderLine, order_lines)
-    Registry.map_imperatively(
+    batches_mapper = Registry.map_imperatively(
         domain.Batch,
         batches,
         properties={
@@ -54,5 +61,12 @@ def start_mappers():
                 secondary=allocations,
                 collection_class=set,
             )
+        },
+    )
+    Registry.map_imperatively(
+        domain.Product,
+        products,
+        properties={
+            "batches": relationship(batches_mapper)
         },
     )

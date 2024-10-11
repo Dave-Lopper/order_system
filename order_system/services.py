@@ -20,7 +20,12 @@ def add_batch(
     uow: unit_of_work.AbstractUnitOfWork,
 ) -> None:
     with uow:
-        uow.batches.add(
+        product = uow.products.get(sku=sku)
+        if product is None:
+            product = domain.Product(sku=sku, batches=[])
+            uow.products.add(product)
+
+        product.batches.append(
             domain.Batch(ref=ref, sku=sku, quantity=quantity, eta=eta)
         )
         uow.commit()
@@ -34,10 +39,11 @@ def allocate(
 ) -> str:
     line = domain.OrderLine(order_ref=order_id, sku=sku, quantity=quantity)
     with uow:
-        batches = uow.batches.list()
-        if not is_valid_sku(sku, batches):
+        product = uow.products.get(sku)
+        if product is None:
             raise InvalidSku(f"Invalid sku {sku}")
-        batchref = domain.allocate(line, batches)
+    
+        batchref = product.allocate(line)
         uow.commit()
     return batchref
 
@@ -47,10 +53,10 @@ def reallocate(
     uow: unit_of_work.AbstractUnitOfWork,
 ) -> str:
     with uow:
-        batch = uow.batches.get(reference=line.sku)
-        if batch is None:
+        product = uow.products.get(reference=line.sku)
+        if product is None:
             raise InvalidSku(f"Invalid sku {line.sku}")
-        batch.deallocate(line)
-        batchref = allocate(line.order_ref, line.sku, line.quantity, uow)
+        product.deallocate(line)
+        batchref = product.allocate(line)
         uow.commit()
     return batchref

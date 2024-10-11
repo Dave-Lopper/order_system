@@ -5,11 +5,11 @@ from sqlalchemy.orm import Session
 
 
 class AbstractRepository(Protocol):
-    def add(self, batch: domain.Batch): ...
+    def add(self, product: domain.Product): ...
 
-    def get(self, reference: str) -> domain.Batch: ...
+    def get(self, reference: str) -> domain.Product: ...
     
-    def list(self) -> list[domain.Batch]: ...
+    def list(self) -> list[domain.Product]: ...
 
 
 class SqlAlchemyRepository(AbstractRepository):
@@ -17,30 +17,30 @@ class SqlAlchemyRepository(AbstractRepository):
     def __init__(self, session: Session):
         self.session = session
 
-    def add(self, batch: domain.Batch):
-        self.session.add(batch)
+    def add(self, product: domain.Product):
+        self.session.add(product)
 
-    def get(self, reference: str) -> domain.Batch:
+    def get(self, sku: str) -> domain.Product:
         return (
-            self.session.query(domain.Batch)
-            .filter_by(reference=reference)
+            self.session.query(domain.Product)
+            .filter_by(sku=sku)
             .one()
         )
 
-    def list(self) -> list[domain.Batch]:
-        return self.session.query(domain.Batch).all()
+    def list(self) -> list[domain.Product]:
+        return self.session.query(domain.Product).all()
 
 
 class FakeRepository(AbstractRepository):
 
-    def __init__(self, batches: list[domain.Batch]):
-        self._batches = set(batches)
+    def __init__(self, productes: list[domain.Product]):
+        self._productes = set(productes)
 
-    def add(self, batch: domain.Batch):
-        self._batches.add(batch)
+    def add(self, product: domain.Product):
+        self._productes.add(product)
 
-    def get(self, reference: str) -> domain.Batch:
-        return next(b for b in self._batches if b.reference == reference)
+    def get(self, reference: str) -> domain.Product:
+        return next(b for b in self._productes if b.reference == reference)
 
-    def list(self) -> list[domain.Batch]:
-        return list(self._batches)
+    def list(self) -> list[domain.Product]:
+        return list(self._productes)
