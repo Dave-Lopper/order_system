@@ -62,7 +62,17 @@ class Batch:
         )  # noqe: E501
 
 
+class Event:
+    pass
+
+@dataclass
+class OutOfStock(Event):
+    sku: str
+
+
 class Product:
+    events: list[Event] = []
+
     def __init__(
         self, sku: str,
         batches: List[Batch],
@@ -71,16 +81,15 @@ class Product:
         self.sku = sku
         self.batches = batches
         self.version_number = version_number
+        self.events = []
 
-    def allocate(self, line: OrderLine) -> str:
+    def allocate(self, line: OrderLine) -> str | None:
         try:
             batch = next(b for b in sorted(self.batches) if b.can_allocate(line))
             batch.allocate(line)
             self.version_number += 1
             return batch.reference
         except StopIteration:
-            raise OutOfStock(f"Out of stock for sku {line.sku}")
-
-class OutOfStock(Exception):
-    pass
+            self.events.append(OutOfStock(line.sku))
+            return None
 

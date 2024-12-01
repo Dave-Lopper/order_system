@@ -20,7 +20,7 @@ def add_batch(
     uow: unit_of_work.AbstractUnitOfWork,
 ) -> None:
     with uow:
-        product = uow.products.get(sku=sku)
+        product = uow.products.get(reference=sku)
         if product is None:
             product = domain.Product(sku=sku, batches=[])
             uow.products.add(product)
@@ -36,13 +36,13 @@ def allocate(
     sku: str,
     quantity: int,
     uow: unit_of_work.AbstractUnitOfWork,
-) -> str:
+) -> str | None:
     line = domain.OrderLine(order_ref=order_id, sku=sku, quantity=quantity)
     with uow:
         product = uow.products.get(sku)
         if product is None:
             raise InvalidSku(f"Invalid sku {sku}")
-    
+
         batchref = product.allocate(line)
         uow.commit()
     return batchref

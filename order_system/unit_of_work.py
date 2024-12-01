@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from order_system import config, repository
+from order_system import config, domain, repository, messagebus
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -14,13 +14,26 @@ class AbstractUnitOfWork(Protocol):
 
     def __enter__(self): ...
 
-    def commit(self): ...
+    def publish_events(self):
+        for product in self.products.seen:
+            while product.events:
+                event = product.events.pop(0)
+                messagebus.handle(event)
+
+    def commit(self):
+        self._commit()
+        self.publish_events()
+    
+    def _commit(self): ...
 
     def rollback(self): ...
 
 
+# DEFAULT_SESSION_FACTORY = sessionmaker(
+#     bind=create_engine(config.get_db_uri(), isolation_level="REPEATABLE READ")
+# )
 DEFAULT_SESSION_FACTORY = sessionmaker(
-    bind=create_engine(config.get_db_uri(), isolation_level="REPEATABLE READ")
+    bind=create_engine(config.get_db_uri())
 )
 
 
@@ -37,7 +50,7 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
         super().__exit__(*args)
         self.session.close()
 
-    def commit(self):
+    def _commit(self):
         self.session.commit()
 
     def rollback(self):
@@ -45,8 +58,8 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
 
 
 class FakeUnitOfWork(AbstractUnitOfWork):
-    def __init__(self):
-        self.products = repository.FakeRepository([])
+    def __init__(self, products: list[domain.Product] = []):
+        self.products = repository.FakeRepository(products)
         self.committed = False
 
     def commit(self):

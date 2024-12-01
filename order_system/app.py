@@ -44,8 +44,9 @@ def allocate_endpoint():
         )
     except services.InvalidSku as e:
         return {"message": str(e)}, 400
-    except domain.OutOfStock as e:
-        return {"message": str(e)}, 422
+    
+    if batchref is None:
+        return {"message": f"Out of stock for sku {request.json['sku']}"}, 422
 
     return {"batchref": batchref}, 201
 
