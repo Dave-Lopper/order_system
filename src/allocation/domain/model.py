@@ -1,14 +1,8 @@
-<<<<<<< Updated upstream:order_system/domain.py
-from datetime import date
-
-from typing import List, Optional, Set
-=======
 from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 from typing import Optional, List, Set
 from . import events
->>>>>>> Stashed changes:src/allocation/domain/model.py
 
 
 class Product:
@@ -37,14 +31,11 @@ class Product:
                 events.AllocationRequired(line.order_ref, line.sku, line.quantity)
             )
 
-
-class OrderLine(BaseModel):
+@dataclass(unsafe_hash=True)
+class OrderLine:
     order_ref: str
     sku: str
     quantity: int
-
-    class Config:
-        frozen = True
 
 
 class Batch:
@@ -89,28 +80,4 @@ class Batch:
         return self._purchased_quantity - self.allocated_quantity
 
     def can_allocate(self, line: OrderLine) -> bool:
-<<<<<<< Updated upstream:order_system/domain.py
-        return (
-            self.sku == line.sku and self.available_quantity >= line.quantity
-        )  # noqe: E501
-
-
-class Product(BaseModel):
-    sku: str
-    display_name: Optional[str] = None
-
-
-class OutOfStock(Exception):
-    pass
-
-
-def allocate(line: OrderLine, batches: List[Batch]) -> str:
-    try:
-        batch = next(b for b in sorted(batches) if b.can_allocate(line))
-    except StopIteration:
-        raise OutOfStock(f"Out of stock for sku {line.sku}")
-    batch.allocate(line)
-    return batch.reference
-=======
         return self.sku == line.sku and self.available_quantity >= line.quantity
->>>>>>> Stashed changes:src/allocation/domain/model.py
