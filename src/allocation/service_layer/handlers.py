@@ -1,5 +1,9 @@
+from dataclasses import asdict
+
+from sqlalchemy.sql import text
+
 from src.allocation.adapters import email, redis_eventpublisher
-from src.allocation.domain import events, model
+from src.allocation.domain import commands, events, model
 from src.allocation.service_layer import unit_of_work
 
 
@@ -57,3 +61,40 @@ def publish_allocated_event(
     uow: unit_of_work.AbstractUnitOfWork,
 ):
     redis_eventpublisher.publish("line_allocated", event)
+
+def add_allocation_to_read_model(
+    event: events.Allocated,
+    uow: unit_of_work.AbstractUnitOfWork,
+):
+    with uow:
+        uow.session.execute(
+            text("""
+            INSERT INTO allocations_view (orderid, sku, batchref)
+            VALUES (:orderid, :sku, :batchref)
+            """),
+            
+        )
+        uow.commit()
+
+def remove_allocation_from_read_model(
+    event: events.Deallocated,
+    uow: unit_of_work.SqlAlchemyUnitOfWork,
+):
+    with uow:
+        uow.session.execute(
+            text("""
+            DELETE FROM allocations_view
+            WHERE orderid = :orderid AND sku = :sku
+            """),
+            dict(orderid=event.orderid, sku=event.sku),
+        )
+        uow.commit()
+
+def reallocate(
+    event: events.Deallocated,
+    uow: unit_of_work.SqlAlchemyUnitOfWork,
+):
+    with uow:
+        product = uow.products.get(sku=event.sku)
+        product.events.append(commands.Allocate(**asdict(event)))
+        uow.commit()
