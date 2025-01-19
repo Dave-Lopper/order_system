@@ -17,6 +17,7 @@ Message = events.Event | commands.Command
 
 EVENT_HANDLERS: dict[Type[events.Event], list[Callable]] = {
     events.OutOfStock: [handlers.send_out_of_stock_notification],
+    events.Allocated: [handlers.publish_allocated_event],
 }
 COMMAND_HANDLERS: dict[Type[commands.Command], Callable] = {
     commands.Allocate: handlers.allocate,
