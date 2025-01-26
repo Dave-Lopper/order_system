@@ -1,90 +1,52 @@
-from __future__ import annotations
-from typing import Callable, Type, TYPE_CHECKING
+from typing import Callable, Dict, List, Union, Type, TYPE_CHECKING
 
-from tenacity import Retrying, RetryError, stop_after_attempt, wait_exponential
+from loguru import logger
 
-from src.allocation.domain import events, commands
-from . import handlers
-
+from src.allocation.domain import commands, events
 if TYPE_CHECKING:
     from . import unit_of_work
 
+Message = Union[commands.Command, events.Event]
 
 
+class MessageBus:
+    def __init__(
+        self,
+        uow: unit_of_work.AbstractUnitOfWork,
+        event_handlers: Dict[Type[events.Event], List[Callable]],
+        command_handlers: Dict[Type[commands.Command], Callable],
+    ):
+        self.uow = uow
+        self.event_handlers = event_handlers
+        self.command_handlers = command_handlers
 
-Message = events.Event | commands.Command
+    def handle(self, message: Message) -> None:
+        self.queue = [message]
+        while self.queue:
+            message = self.queue.pop(0)
+            if isinstance(message, events.Event):
+                self.handle_event(message)
+            elif isinstance(message, commands.Command):
+                self.handle_command(message)
+            else:
+                raise Exception(f"{message} was not an Event or Command")
 
+    def handle_event(self, event: events.Event) -> None:
+        for handler in self.event_handlers[type(event)]:
+            try:
+                logger.debug("handling event %s with handler %s", event, handler)
+                handler(event)
+                self.queue.extend(self.uow.collect_new_events())
+            except Exception:
+                logger.exception("Exception handling event %s", event)
+                continue
 
-EVENT_HANDLERS: dict[Type[events.Event], list[Callable]] = {
-    events.OutOfStock: [handlers.send_out_of_stock_notification],
-    events.Allocated: [handlers.publish_allocated_event, handlers.add_allocation_to_read_model],
-    events.Deallocated: [
-        handlers.remove_allocation_from_read_model,
-        handlers.reallocate
-    ]
-}
-COMMAND_HANDLERS: dict[Type[commands.Command], Callable] = {
-    commands.Allocate: handlers.allocate,
-    commands.CreateBatch: handlers.add_batch,
-    commands.ChangeBatchQuantity: handlers.change_batch_quantity,
-}
-
-
-def handle_command(
-    command: commands.Command,
-    queue: list[Message],
-    uow: unit_of_work.AbstractUnitOfWork,
-):
-    print(f"handling command {command}")
-    try:
-        handler = COMMAND_HANDLERS[type(command)]  #(1)
-        result = handler(command, uow=uow)
-        queue.extend(uow.collect_new_events())
-        return result
-    except Exception:
-        print(f"Exception handling command {command}")
-        raise
-
-
-
-
-def handle_event(
-    event: events.Event,
-    queue: list[Message],
-    uow: unit_of_work.AbstractUnitOfWork,
-):
-    for handler in EVENT_HANDLERS[type(event)]:
+    def handle_command(self, command: commands.Command) -> None:
+        logger.debug("handling command %s", command)
         try:
-            for attempt in Retrying(
-                stop=stop_after_attempt(3),
-                wait=wait_exponential()
-            ):
-
-                with attempt:
-                    print(f"handling event {event} with handler {handler}")
-                    handler(event, uow=uow)
-                    queue.extend(uow.collect_new_events())
-        except RetryError as retry_failure:
-            print(
-                f"Failed to handle event {retry_failure.last_attempt.attempt_number} times, giving up!"
-            )
-            continue
-
-
-def handle(
-    message: Message,
-    uow: unit_of_work.AbstractUnitOfWork,
-):
-    results = []
-    queue = [message]
-    while queue:
-        message = queue.pop(0)
-        if isinstance(message, events.Event):
-            handle_event(message, queue, uow)
-        elif isinstance(message, commands.Command):
-            cmd_result = handle_command(message, queue, uow)
-            results.append(cmd_result)
-        else:
-            raise Exception(f"{message} was not an Event or Command")
-    return results
-
+            handler = self.command_handlers[type(command)]
+            handler(command)
+            self.queue.extend(self.uow.collect_new_events())
+        except Exception:
+            logger.exception("Exception handling command %s", command)
+            raise

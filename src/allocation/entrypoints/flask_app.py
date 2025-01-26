@@ -1,14 +1,12 @@
 from datetime import datetime
 from flask import Flask, jsonify, request  # type: ignore
 
-from src.allocation import views
+from src.allocation import bootstrap, views
 from src.allocation.domain import commands
-from src.allocation.adapters import orm
-from src.allocation.service_layer import messagebus, unit_of_work
 from src.allocation.service_layer.handlers import InvalidSku
 
 app = Flask(__name__)
-orm.start_mappers()
+bus = bootstrap.bootstrap()
 
 
 @app.route("/add_batch", methods=["POST"])
@@ -20,7 +18,7 @@ def add_batch():
     command = commands.CreateBatch(
         request.json["ref"], request.json["sku"], request.json["qty"], eta
     )
-    messagebus.handle(command, unit_of_work.SqlAlchemyUnitOfWork())
+    bus.handle(command)
 
     return "OK", 201
 
@@ -31,20 +29,15 @@ def allocate_endpoint():
         command = commands.Allocate(
             request.json["orderid"], request.json["sku"], request.json["qty"]
         )
-        results = messagebus.handle(command, unit_of_work.SqlAlchemyUnitOfWork())
-        batchref = results.pop(0)
+        bus.handle(command)
     except InvalidSku as e:
         return {"message": str(e)}, 400
-    
-    if batchref is None:
-        return {"message": f"Out of stock for sku {request.json['sku']}"}, 422
 
-    return {"batchref": batchref}, 201
+    return "OK", 202
 
 @app.route("/allocations/<orderid>", methods=["GET"])
 def allocations_view_endpoint(orderid):
-    uow = unit_of_work.SqlAlchemyUnitOfWork()
-    result = views.allocations(orderid, uow)  #(1)
+    result = views.allocations(orderid, bus.uow)
     if not result:
         return "not found", 404
     return jsonify(result), 200

@@ -15,3 +15,9 @@ def get_redis_host_and_port() -> tuple[str, int]:
     host = os.environ.get("REDIS_HOST", "localhost")
     port = 6379 if host == "localhost" else 80
     return host, port
+
+
+def get_email_host_and_port() -> dict[str, str | int]:
+    host = os.environ.get("EMAIL_HOST", "localhost")
+    port = 25 if host == "localhost" else 587
+    return {"host": host, "port": port}
